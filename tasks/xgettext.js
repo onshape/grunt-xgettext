@@ -87,7 +87,33 @@ module.exports = function(grunt) {
     }
 
     var extractors = {
-        handlebars: function(file, options) {
+      angular: function(file, options) {
+        var contents = grunt.file.read(file).replace("\n", " "),
+          fn = _.flatten([ options.functionName ]),
+          messages = {},
+          namespaceSeparator = options.namespaceSeparator || '.';
+
+        var extractStrings = function(quote, fn) {
+          var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
+          var variablesRegex = "(?::\\{.*\\})?";
+          var regex = new RegExp("\\{\\{\\s*((?:" +
+            quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
+            "\\s*)+)[^}]*\\s*\\|\\s*" + fn + variablesRegex + "\\s*\\}\\}", "g");
+          var subRE = new RegExp(quote + namespaceRegex + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
+          var quoteRegex = new RegExp("\\\\" + quote, "g");
+
+          mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
+        };
+
+        _.each(fn, function(func) {
+          extractStrings("'", func);
+          extractStrings('"', func);
+        });
+
+        return messages;
+      },
+
+      handlebars: function(file, options) {
             var contents = grunt.file.read(file).replace("\n", " "),
                 fn = _.flatten([ options.functionName ]),
                 messages = {},
