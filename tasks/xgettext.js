@@ -93,6 +93,7 @@ module.exports = function(grunt) {
           messages = {},
           namespaceSeparator = options.namespaceSeparator || '.';
 
+        // Extract text strings with use the filter form of the ng-i18next library.
         var extractStrings = function(quote, fn) {
           var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
           var variablesRegex = "(?::\\{.*\\})?";
@@ -105,9 +106,28 @@ module.exports = function(grunt) {
           mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
         };
 
+        // Text strings may also use the ng-i18next directive with a set of arguments - particularly to do compiled HTML
+        // (<b> tags for example) in the key text.
+        var extractDirectiveStrings = function(quote, fn) {
+          var allNamespaces = { messages : {}};
+          var regex = new RegExp('ng-i18next=' + quote + '\\[html:' + fn + '\\]\\([^\\)]+\\)([^' + quote + ']+)' + quote, "g");
+          var result;
+          while ((result = regex.exec(contents)) !== null) {
+            var string = result[1];
+            allNamespaces.messages[string] = {
+              singular: string,
+              message: ""
+            };
+          }
+
+          mergeTranslationNamespaces(messages, allNamespaces);
+        };
+
         _.each(fn, function(func) {
           extractStrings("'", func);
           extractStrings('"', func);
+          extractDirectiveStrings("'", func);
+          extractDirectiveStrings('"', func);
         });
 
         return messages;
