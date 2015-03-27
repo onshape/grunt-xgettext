@@ -164,13 +164,15 @@ module.exports = function(grunt) {
                 .replace(/'\s*\+\s*'/g, "");
 
             var fn = _.flatten([ options.functionName ]),
-                messages = {};
+                messages = {},
+                namespaceSeparator = options.namespaceSeparator || '.';
 
             var extractStrings = function(quote, fn) {
+                var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
                 var regex = new RegExp("(?:[^\\w]|^)" + fn + "\\s*\\(\\s*((?:" +
                     quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
                     "\\s*[,)]\\s*)+)", "g");
-                var subRE = new RegExp(quote + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
+                var subRE = new RegExp(quote + namespaceRegex + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
                 var quoteRegex = new RegExp("\\\\" + quote, "g");
 
               mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
@@ -179,6 +181,8 @@ module.exports = function(grunt) {
             _.each(fn, function(func) {
                 extractStrings("'", func);
                 extractStrings('"', func);
+                extractStrings("'", func + "_");
+                extractStrings('"', func + "_");
             });
 
             return messages;
