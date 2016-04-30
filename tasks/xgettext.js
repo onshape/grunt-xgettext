@@ -163,8 +163,8 @@ module.exports = function(grunt) {
           messages = {};
 
         var extractStrings = function(quote) {
-          var regex = /"((?:tooltips|server):::[^"]+)"/g;
-          var subRE = /(tooltips|server):::([^"]+)/g;
+          var regex = /"((?:tooltips):::[^"]+)"/g;
+          var subRE = /(tooltips):::([^"]+)/g;
           var quoteRegex = new RegExp("\\\\" + quote, "g");
 
           mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
