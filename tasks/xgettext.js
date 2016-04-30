@@ -158,7 +158,24 @@ module.exports = function(grunt) {
             return messages;
         },
 
-        javascript: function(file, options) {
+      json: function(file, options) {
+        var contents = grunt.file.read(file),
+          messages = {};
+
+        var extractStrings = function(quote) {
+          var regex = /"((?:tooltips|server):::[^"]+)"/g;
+          var subRE = /(tooltips|server):::([^"]+)/g;
+          var quoteRegex = new RegExp("\\\\" + quote, "g");
+
+          mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
+        };
+
+        extractStrings('"');
+
+        return messages;
+      },
+
+      javascript: function(file, options) {
             var contents = grunt.file.read(file).replace("\n", " ")
                 .replace(/"\s*\+\s*"/g, "")
                 .replace(/'\s*\+\s*'/g, "");
