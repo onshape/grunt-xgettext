@@ -97,9 +97,9 @@ module.exports = function(grunt) {
         var extractStrings = function(quote, fn) {
           var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
           var variablesRegex = "(?::\\{.*\\})?";
-          var regex = new RegExp("\\{\\{\\s*((?:" +
-            quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
-            "\\s*)+)[^}]*\\s*\\|\\s*" + fn + variablesRegex + "\\s*\\}\\}", "g");
+          var regex = new RegExp("\\{\\{\\s*((?:\\:{0,2}\\(?" +
+                                 quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
+                                 "\\)?\\s*)+)[^}]*\\s*\\|\\s*" + fn + variablesRegex + "\\)?\\s*\\}\\}", "g");
           var subRE = new RegExp(quote + namespaceRegex + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
           var quoteRegex = new RegExp("\\\\" + quote, "g");
 
