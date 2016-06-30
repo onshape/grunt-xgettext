@@ -110,7 +110,7 @@ module.exports = function(grunt) {
         // (<b> tags for example) in the key text.
         var extractDirectiveStrings = function(quote, fn) {
           var allNamespaces = { messages : {}};
-          var regex = new RegExp('ng-i18next=' + quote + '\\[html:' + fn + '\\]\\([^\\)]+\\)([^' + quote + ']+)' + quote, "g");
+          var regex = new RegExp('ng-i18next=' + quote + '\\[html:' + fn + '\\](?:\\({(?!}\\)).+}\\))?([^' + quote + ']+)' + quote, "g");
           var result;
           while ((result = regex.exec(contents)) !== null) {
             var string = result[1];
