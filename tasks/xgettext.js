@@ -160,11 +160,13 @@ module.exports = function(grunt) {
 
       json: function(file, options) {
         var contents = grunt.file.read(file),
-          messages = {};
+          messages = {},
+          namespaceSeparator = options.namespaceSeparator || '.';
 
         var extractStrings = function(quote) {
-          var regex = /"((?:tooltips):::[^"]+)"/g;
-          var subRE = /(tooltips):::([^"]+)/g;
+          var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
+          var regex = /"((?:[\d\w]+:::)?[^"]+)"/g;
+          var subRE = new RegExp(namespaceRegex + "([^" + quote + "]+)", "g");
           var quoteRegex = new RegExp("\\\\" + quote, "g");
 
           mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
