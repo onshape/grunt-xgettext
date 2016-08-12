@@ -165,7 +165,7 @@ module.exports = function(grunt) {
 
         var extractStrings = function(quote) {
           var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
-          var regex = /"((?:[\d\w]+:::)?[^"]+)"/g;
+          var regex = /"((?:[\d\w]+:::)[^"]+)"/g;
           var subRE = new RegExp(namespaceRegex + "([^" + quote + "]+)", "g");
           var quoteRegex = new RegExp("\\\\" + quote, "g");
 
