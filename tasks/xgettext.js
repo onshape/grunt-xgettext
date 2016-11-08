@@ -360,7 +360,7 @@ module.exports = function(grunt) {
       if (!grunt.option('fix')) {
         var existingResources = grunt.file.read(filename);
         if (contents !== existingResources) {
-          grunt.fail.fatal("It appears that you have js resource changes not yet updated in po and pot files. Please run 'grunt xgettext --fix=true'");
+          grunt.fail.fatal("It appears that you have js resource changes not yet updated in po and pot files. Please run 'grunt xgettext --fix'");
         }
       } else {
         grunt.file.write(filename, contents, {});
