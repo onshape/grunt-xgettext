@@ -156,7 +156,8 @@ module.exports = function(grunt) {
 
     // remove resources from po next
     var removedMsgids = [];
-    for (i = 0; i < po.msgid.length; i++) {
+    // exclude the first id and str to preserve the po header
+    for (i = 1; i < po.msgid.length; i++) {
       if (_.indexOf(pot.msgid, po.msgid[i]) === -1) {
         removedMsgids.push(po.msgid[i]);
       }
@@ -168,10 +169,8 @@ module.exports = function(grunt) {
       po.msgstr.splice(index, 1);
     }
 
-    grunt.log.writeln("For " + namespace + " namespace: pot has " + pot.msgid.length + " items; po has " + po.msgid.length + " items.");
-
     // fail the build if the number of items in po and pot files are not the same
-    if (pot.msgid.length !== po.msgid.length || po.msgid.length !== po.msgstr.length) {
+    if (pot.msgid.length !== (po.msgid.length - 1) || po.msgid.length !== po.msgstr.length) {
       grunt.fail.fatal("Convert from pot file to po file failed for this namespace: " + namespace + ". Please find UI team for help.");
     }
 
