@@ -306,16 +306,11 @@ module.exports = function(grunt) {
     }
   };
 
-  grunt.registerMultiTask("xgettext", "Extracts translatable messages", function() {
-    var options = this.options({
-      functionName: "tr",
-      processMessage: _.identity,
-      potPath: '.'
-    });
+  function handleTranslations(options, files, potFolderPath) {
 
     var translations = {};
 
-    this.files.forEach(function(f) {
+    files.forEach(function(f) {
 
       if (!extractors.hasOwnProperty(f.dest)) {
         console.log("No gettext extractor for type: " + f.dest);
@@ -363,9 +358,18 @@ module.exports = function(grunt) {
         }
       } else {
         grunt.file.write(filename, contents, {});
-        updatePoFromPot('./project/translations', namespaceName);
+        updatePoFromPot(potFolderPath, namespaceName);
       }
     });
+  }
+
+  grunt.registerMultiTask("xgettext", "Extracts translatable messages", function() {
+    var options = this.options({
+      functionName: "tr",
+      processMessage: _.identity,
+      potPath: '.'
+    });
+    handleTranslations(options, this.files, './project/translations');
   });
 
   grunt.registerMultiTask("xgettextKingsschool", "Extracts translatable messages for kingsschool project", function() {
@@ -374,59 +378,6 @@ module.exports = function(grunt) {
       processMessage: _.identity,
       potPath: '.'
     });
-
-    var translations = {};
-
-    this.files.forEach(function(f) {
-
-      if (!extractors.hasOwnProperty(f.dest)) {
-        console.log("No gettext extractor for type: " + f.dest);
-        return;
-      }
-
-      var messages = {};
-      f.src.forEach(function(file) {
-        var newExtractedStrings = extractors[f.dest](file, options);
-        _.each(newExtractedStrings, function(aNamespace, namespaceName) {
-          messages[namespaceName] = _.extend(messages[namespaceName] || {}, aNamespace);
-        });
-      });
-
-      mergeTranslationNamespaces(translations, messages);
-
-      _.each(messages, function(aNamespace, namespaceName) {
-        var count = Object.keys(aNamespace).length;
-      })
-    });
-
-    _.each(translations, function(aNamespace, namespaceName) {
-      var contents = "";
-
-      var sortedKeys = Object.keys(aNamespace).sort();
-
-      contents += _.map(sortedKeys, function (aKey) {
-        var definition = aNamespace[aKey];
-        var buffer = "msgid " + escapeString(definition.singular) + "\n";
-        if (definition.plural) {
-          buffer += "msgid_plural " + escapeString(definition.plural) + "\n";
-          buffer += "msgstr[0] " + escapeString(definition.message) + "\n";
-        } else {
-          buffer += "msgstr " + escapeString(definition.message) + "\n";
-        }
-        return buffer;
-      }).join("\n");
-
-      var filename = path.resolve(options.potPath, namespaceName + ".pot");
-
-      if (!grunt.option('fix')) {
-        var existingResources = grunt.file.read(filename);
-        if (contents !== existingResources) {
-          grunt.fail.fatal("It appears that you have js resource changes not yet updated in po and pot files. Please run 'grunt xgettext --fix'");
-        }
-      } else {
-        grunt.file.write(filename, contents, {});
-        updatePoFromPot('./project/kingsschool/translations', namespaceName);
-      }
-    });
+    handleTranslations(options, this.files, './project/kingsschool/translations');
   });
 };
