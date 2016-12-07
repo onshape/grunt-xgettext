@@ -128,10 +128,10 @@ module.exports = function(grunt) {
     return output;
   }
 
-  function updatePoFromPot(namespace) {
+  function updatePoFromPot(potFolderPath, namespace) {
 
-    var potFilename = path.resolve('./project/translations', namespace + ".pot");
-    var poFilename = path.resolve('./project/translations', namespace + "-en.po");
+    var potFilename = path.resolve(potFolderPath, namespace + ".pot");
+    var poFilename = path.resolve(potFolderPath, namespace + "-en.po");
 
     var potContents = grunt.file.read(potFilename);
     var pot = parseIntoArray(potContents);
@@ -306,16 +306,11 @@ module.exports = function(grunt) {
     }
   };
 
-  grunt.registerMultiTask("xgettext", "Extracts translatable messages", function() {
-    var options = this.options({
-      functionName: "tr",
-      processMessage: _.identity,
-      potPath: '.'
-    });
+  function handleTranslations(options, files, potFolderPath) {
 
     var translations = {};
 
-    this.files.forEach(function(f) {
+    files.forEach(function(f) {
 
       if (!extractors.hasOwnProperty(f.dest)) {
         console.log("No gettext extractor for type: " + f.dest);
@@ -363,8 +358,26 @@ module.exports = function(grunt) {
         }
       } else {
         grunt.file.write(filename, contents, {});
-        updatePoFromPot(namespaceName);
+        updatePoFromPot(potFolderPath, namespaceName);
       }
     });
+  }
+
+  grunt.registerMultiTask("xgettext", "Extracts translatable messages", function() {
+    var options = this.options({
+      functionName: "tr",
+      processMessage: _.identity,
+      potPath: '.'
+    });
+    handleTranslations(options, this.files, './project/translations');
+  });
+
+  grunt.registerMultiTask("xgettextKingsschool", "Extracts translatable messages for kingsschool project", function() {
+    var options = this.options({
+      functionName: "tr",
+      processMessage: _.identity,
+      potPath: '.'
+    });
+    handleTranslations(options, this.files, './project/kingsschool/translations');
   });
 };
