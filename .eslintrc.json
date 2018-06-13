@@ -1,0 +1,11 @@
+{
+    "extends": "airbnb-base",
+    "plugins": [
+        "import"
+    ],
+    "rules": {
+        "no-param-reassign": "off",
+        "func-names": "off",
+        "prefer-destructuring": "warn"
+    }
+}
