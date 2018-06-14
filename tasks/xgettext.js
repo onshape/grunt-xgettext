@@ -6,20 +6,18 @@
  * Licensed under the MIT license.
  */
 
-"use strict";
-var path = require('path');
 
-module.exports = function(grunt) {
+const path = require('path');
 
-  var _ = grunt.util._;
+module.exports = function (grunt) {
+  const _ = grunt.util._;
 
   function escapeString(string) {
-
-    return '"' + string.replace(/"/g, '\\"') + '"';
+    return `"${string.replace(/"/g, '\\"')}"`;
   }
 
   function mergeTranslationNamespaces(destination, source) {
-    _.each(source, function(aNamespace, namespaceName) {
+    _.each(source, (aNamespace, namespaceName) => {
       destination[namespaceName] = _.extend(destination[namespaceName] || {}, aNamespace);
     });
     return destination;
@@ -27,35 +25,48 @@ module.exports = function(grunt) {
 
   /**
    * Get all messages of a content
-   * @param  {String} content     content on which extract gettext calls
-   * @param  {Regex} regex        first level regex
-   * @param  {Regex} subRE        second level regex
-   * @param  {Regex} quoteRegex   regex for quotes
-   * @param  {String} quote       quote: " or '
-   * @param  {Object} options     task options
-   * @return {Object}             messages in a JS pot alike
-   *                                       {
-     *                                           singularKey: {
-     *                                               singular: singularKey,
-     *                                               plural: pluralKey,     // present only if plural
-     *                                               message: ""
+   * @param  {String} content            content on which extract gettext calls
+   * @param  {Regex} regex               first level regex
+   * @param  {Regex} subRE               second level regex
+   * @param  {Regex} quoteRegex          regex for quotes
+   * @param  {String} quote              quote: " or '
+   * @param  {Object} options            task options
+   * @param  {String} fileName           the source file of these messages
+   * @param  {Object} messageToFilesMap  the map to keep track of what messages come from where
+   * @return {Object}                    messages in a JS pot alike
+   *                                    {
+     *                                        singularKey: {
+     *                                            singular: singularKey,
+     *                                            plural: pluralKey,     // present only if plural
+     *                                            message: ""
      *
-     *                                           },
-     *                                           ...
-     *                                       }
+     *                                        },
+     *                                        ...
+     *                                  }
    */
-  function getMessages(content, regex, subRE, quoteRegex, quote, options) {
-    var messages = {}, result, currentNamespace;
-    var allNamespaces = {
-      messages: {}
+  function getMessages({
+    content,
+    regex,
+    subRE,
+    quoteRegex,
+    quote,
+    options,
+    fileName,
+    messageToFilesMap,
+  }) {
+    let currentNamespace;
+    const allNamespaces = {
+      messages: {},
     };
-    while ((result = regex.exec(content)) !== null) {
-      var strings = result[1],
-        singularKey = void 0;
-
-      while ((result = subRE.exec(strings)) !== null) {
-        var keyIndex = 1;
+    let result = regex.exec(content);
+    while (result !== null) {
+      const strings = result[1];
+      let singularKey;
+      result = subRE.exec(strings);
+      while (result !== null) {
+        let keyIndex = 1;
         currentNamespace = allNamespaces.messages;
+        let currentNamespaceString = 'messages';
 
         if (result.length === 3) {
           if (result[1] === undefined) {
@@ -65,10 +76,11 @@ module.exports = function(grunt) {
               allNamespaces[result[1]] = {};
             }
             currentNamespace = allNamespaces[result[1]];
+            currentNamespaceString = result[1];
           }
           keyIndex = 2;
         }
-        var string = options.processMessage(result[keyIndex].replace(quoteRegex, quote));
+        const string = options.processMessage(result[keyIndex].replace(quoteRegex, quote));
 
         // if singular form already defined add message as plural
         if (typeof singularKey !== 'undefined') {
@@ -78,10 +90,21 @@ module.exports = function(grunt) {
           singularKey = string;
           currentNamespace[singularKey] = {
             singular: string,
-            message: ""
+            message: '',
           };
         }
+        if (!messageToFilesMap[currentNamespaceString]) {
+          messageToFilesMap[currentNamespaceString] = {};
+        }
+        if (messageToFilesMap[currentNamespaceString][singularKey] &&
+            !_.contains(messageToFilesMap[currentNamespaceString][singularKey], fileName)) {
+          messageToFilesMap[currentNamespaceString][singularKey].push(fileName);
+        } else if (!messageToFilesMap[currentNamespaceString][singularKey]) {
+          messageToFilesMap[currentNamespaceString][singularKey] = [fileName];
+        }
+        result = subRE.exec(strings);
       }
+      result = regex.exec(content);
     }
     return allNamespaces;
   }
@@ -96,287 +119,387 @@ module.exports = function(grunt) {
    * @licence    M.I.T
    */
   function parseIntoArray(str) {
-    var messageRE = /(^#[\:\.,~|\s]\s?|^msgid\s"|^msgstr\s"|^"|"$)?/g;
-    function clean(str) {
-      return str.replace(messageRE, "").replace(/\\"/g, '"');
+    const messageRE = /(^#[:.,~|\s]\s?|^msgid\s"|^msgstr\s"|^"|"$)?/g;
+    function clean(s) {
+      return s.replace(messageRE, '').replace(/\\"/g, '"');
     }
 
-    var curMsgid = 0;
-    var curSection = "";
-    var output = {
+    let curMsgid = 0;
+    let curSection = '';
+    const output = {
       msgid: [],
-      msgstr: []
+      msgstr: [],
     };
 
-    var lines = str.split("\n");
-    lines.forEach(function(line) {
-      if (line.substr(0, 6) === "msgid ") {
+    const lines = str.split('\n');
+    lines.forEach((line) => {
+      if (line.substr(0, 6) === 'msgid ') {
         // untranslated-string
-        curSection = "msgid";
+        curSection = 'msgid';
         output.msgid[curMsgid] = clean(line);
-      } else if (line.substr(0, 6) === "msgstr") {
+      } else if (line.substr(0, 6) === 'msgstr') {
         // translated-string
-        curSection = "msgstr";
+        curSection = 'msgstr';
         output.msgstr[curMsgid] = clean(line);
       } else if (line.substr(0, 1) === '"') {
         // continuation
         output[curSection][curMsgid] += clean(line);
-      } else if (line.trim() === "") {
-        curMsgid++;
+      } else if (line.trim() === '') {
+        curMsgid += 1;
       }
     });
     return output;
   }
 
   function updatePoFromPot(potFolderPath, namespace) {
+    const potFilename = path.resolve(potFolderPath, `${namespace}.pot`);
+    const poFilename = path.resolve(potFolderPath, `${namespace}-en.po`);
 
-    var potFilename = path.resolve(potFolderPath, namespace + ".pot");
-    var poFilename = path.resolve(potFolderPath, namespace + "-en.po");
+    const potContents = grunt.file.read(potFilename);
+    const pot = parseIntoArray(potContents);
 
-    var potContents = grunt.file.read(potFilename);
-    var pot = parseIntoArray(potContents);
+    const poContents = grunt.file.read(poFilename);
+    const po = parseIntoArray(poContents);
 
-    var poContents = grunt.file.read(poFilename);
-    var po = parseIntoArray(poContents);
-
-    var newMsgids = [];
+    const newMsgids = [];
     // add new resources into po first
-    for (var i = 0; i < pot.msgid.length; i++) {
+    for (let i = 0; i < pot.msgid.length; i += 1) {
       if (_.indexOf(po.msgid, pot.msgid[i]) === -1) {
         newMsgids.push(pot.msgid[i]);
       }
     }
 
-    var sortedIndex = po.msgid.length;
-    for (i = 0; i < newMsgids.length; i++) {
+    let sortedIndex = po.msgid.length;
+    for (let i = 0; i < newMsgids.length; i += 1) {
       sortedIndex = _.sortedIndex(po.msgid, newMsgids[i]);
       po.msgid.splice(sortedIndex, 0, newMsgids[i]);
       po.msgstr.splice(sortedIndex, 0, newMsgids[i]);
     }
 
     // remove resources from po next
-    var removedMsgids = [];
+    const removedMsgids = [];
     // exclude the first id and str to preserve the po header
-    for (i = 1; i < po.msgid.length; i++) {
+    for (let i = 1; i < po.msgid.length; i += 1) {
       if (_.indexOf(pot.msgid, po.msgid[i]) === -1) {
         removedMsgids.push(po.msgid[i]);
       }
     }
 
-    for (i = 0; i < removedMsgids.length; i++) {
-      var index = _.indexOf(po.msgid, removedMsgids[i]);
+    for (let i = 0; i < removedMsgids.length; i += 1) {
+      const index = _.indexOf(po.msgid, removedMsgids[i]);
       po.msgid.splice(index, 1);
       po.msgstr.splice(index, 1);
     }
 
     // fail the build if the number of items in po and pot files are not the same
     if (pot.msgid.length !== (po.msgid.length - 1) || po.msgid.length !== po.msgstr.length) {
-      grunt.fail.fatal("Convert from pot file to po file failed for this namespace: " + namespace + ". Please find UI team for help.");
+      grunt.fail.fatal(`Convert from pot file to po file failed for this namespace: ${namespace}. Please find UI team for help.`);
     }
 
-    var buffer = '';
+    let buffer = '';
 
-    for (var j = 0; j < po.msgid.length - 1; j++) {
-      buffer += 'msgid ' + escapeString(po.msgid[j]) + '\n' + 'msgstr ' + escapeString(po.msgstr[j]) + '\n\n';
+    for (let j = 0; j < po.msgid.length - 1; j += 1) {
+      buffer += `msgid ${escapeString(po.msgid[j])}\nmsgstr ${escapeString(po.msgstr[j])}\n\n`;
     }
-    buffer += 'msgid ' + escapeString(po.msgid[po.msgid.length - 1]) + '\n' + 'msgstr ' + escapeString(po.msgstr[po.msgid.length - 1]);
+    buffer += `msgid ${escapeString(po.msgid[po.msgid.length - 1])}\nmsgstr ${escapeString(po.msgstr[po.msgid.length - 1])}`;
 
     grunt.file.write(poFilename, buffer);
   }
 
-  var extractors = {
-    angular: function(file, options) {
-      var contents = grunt.file.read(file).replace("\n", " "),
-        fn = _.flatten([ options.functionName ]),
-        messages = {},
-        namespaceSeparator = options.namespaceSeparator || '.';
+  const extractors = {
+    angular(fileName, options) {
+      const content = grunt.file.read(fileName).replace('\n', ' ');
+      const fn = _.flatten([options.functionName]);
+      const messages = {};
+      const namespaceSeparator = options.namespaceSeparator || '.';
+      const messageToFilesMap = {};
 
       // Extract text strings with use the filter form of the ng-i18next library.
-      var extractStrings = function(quote, fn) {
-        var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
-        var variablesRegex = "(?::\\{.*\\})?";
-        var regex = new RegExp("\\{\\{\\s*((?:\\:{0,2}\\(?" +
-                               quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
-                               "\\s*)+)[^}]*\\s*\\|\\s*" + fn + variablesRegex + "\\)?\\s*\\}\\}", "g");
-        var subRE = new RegExp(quote + namespaceRegex + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
-        var quoteRegex = new RegExp("\\\\" + quote, "g");
+      const extractStrings = function (quote, functionName) {
+        const namespaceRegex = `(?:([\\d\\w]*)${namespaceSeparator})?`;
+        const variablesRegex = '(?::\\{.*\\})?';
+        const regex = new RegExp(`\\{\\{\\s*((?:\\:{0,2}\\(?${
+          quote}(?:[^${quote}\\\\]|\\\\.)+${quote
+        }\\s*)+)[^}]*\\s*\\|\\s*${functionName}${variablesRegex}\\)?\\s*\\}\\}`, 'g');
+        const subRE = new RegExp(`${quote + namespaceRegex}((?:[^${quote}\\\\]|\\\\.)+)${quote}`, 'g');
+        const quoteRegex = new RegExp(`\\\\${quote}`, 'g');
 
-        mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
+        mergeTranslationNamespaces(
+          messages,
+          getMessages({
+            content,
+            regex,
+            subRE,
+            quoteRegex,
+            quote,
+            options,
+            fileName,
+            messageToFilesMap,
+          }),
+        );
       };
 
-      // Text strings may also use the ng-i18next directive with a set of arguments - particularly to do compiled HTML
-      // (<b> tags for example) in the key text.
-      var extractDirectiveStrings = function(quote, fn) {
-        var allNamespaces = { messages : {}};
-        var regex = new RegExp('ng-i18next=' + quote + '\\[html:' + fn + '\\](?:\\({(?!}\\)).+}\\))?([^' + quote + ']+)' + quote, "g");
-        var result;
-        while ((result = regex.exec(contents)) !== null) {
-          var string = result[1];
-          allNamespaces.messages[string] = {
-            singular: string,
-            message: ""
-          };
-        }
+      /* Text strings may also use the ng-i18next directive with a set of arguments
+       * particularly to do compiled HTML
+       * (<b> tags for example) in the key text.
+       */
+      const extractDirectiveStrings = function (quote, functionName) {
+        const allNamespaces = { messages: {} };
+        const regex = new RegExp(`ng-i18next=${quote}\\[html:${functionName}\\](?:\\({(?!}\\)).+}\\))?([^${quote}]+)${quote}`, 'g');
+        let result;
+        do {
+          result = regex.exec(content);
+          if (result !== null) {
+            const string = result[1];
+            allNamespaces.messages[string] = {
+              singular: string,
+              message: '',
+            };
+          }
+        } while (result !== null);
 
         mergeTranslationNamespaces(messages, allNamespaces);
       };
 
-      _.each(fn, function(func) {
+      _.each(fn, (func) => {
         extractStrings("'", func);
         extractStrings('"', func);
         extractDirectiveStrings("'", func);
         extractDirectiveStrings('"', func);
       });
 
-      return messages;
+      return [messages, messageToFilesMap];
     },
 
-    handlebars: function(file, options) {
-      var contents = grunt.file.read(file).replace("\n", " "),
-        fn = _.flatten([ options.functionName ]),
-        messages = {},
-        namespaceSeparator = options.namespaceSeparator || '.';
+    handlebars(fileName, options) {
+      const content = grunt.file.read(fileName).replace('\n', ' ');
+      const fn = _.flatten([options.functionName]);
+      const messages = {};
+      const namespaceSeparator = options.namespaceSeparator || '.';
+      const messageToFilesMap = {};
 
-      var extractStrings = function(quote, fn) {
-        var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
-        var regex = new RegExp("\\{\\{\\s*" + fn + "\\s+((?:" +
-                               quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
-                               "\\s*)+)[^}]*\\s*\\}\\}", "g");
-        var subRE = new RegExp(quote + namespaceRegex + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
-        var quoteRegex = new RegExp("\\\\" + quote, "g");
+      const extractStrings = function (quote, functionName) {
+        const namespaceRegex = `(?:([\\d\\w]*)${namespaceSeparator})?`;
+        const regex = new RegExp(`\\{\\{\\s*${functionName}\\s+((?:${
+          quote}(?:[^${quote}\\\\]|\\\\.)+${quote
+        }\\s*)+)[^}]*\\s*\\}\\}`, 'g');
+        const subRE = new RegExp(`${quote + namespaceRegex}((?:[^${quote}\\\\]|\\\\.)+)${quote}`, 'g');
+        const quoteRegex = new RegExp(`\\\\${quote}`, 'g');
 
-        mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
+        mergeTranslationNamespaces(
+          messages,
+          getMessages({
+            content,
+            regex,
+            subRE,
+            quoteRegex,
+            quote,
+            options,
+            fileName,
+            messageToFilesMap,
+          }),
+        );
       };
 
-      _.each(fn, function(func) {
+      _.each(fn, (func) => {
         extractStrings("'", func);
         extractStrings('"', func);
       });
 
-      return messages;
+      return [messages, messageToFilesMap];
     },
 
-    json: function(file, options) {
-      var contents = grunt.file.read(file),
-        messages = {},
-        namespaceSeparator = options.namespaceSeparator || '.';
+    json(fileName, options) {
+      const content = grunt.file.read(fileName);
+      const messages = {};
+      const namespaceSeparator = options.namespaceSeparator || '.';
+      const messageToFilesMap = {};
 
-      var extractStrings = function(quote) {
-        var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
-        var regex = /"((?:[\d\w]+:::)[^"]+)"/g;
-        var subRE = new RegExp(namespaceRegex + "([^" + quote + "]+)", "g");
-        var quoteRegex = new RegExp("\\\\" + quote, "g");
+      const extractStrings = function (quote) {
+        const namespaceRegex = `(?:([\\d\\w]*)${namespaceSeparator})?`;
+        const regex = /"((?:[\d\w]+:::)[^"]+)"/g;
+        const subRE = new RegExp(`${namespaceRegex}([^${quote}]+)`, 'g');
+        const quoteRegex = new RegExp(`\\\\${quote}`, 'g');
 
-        mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
+        mergeTranslationNamespaces(
+          messages,
+          getMessages({
+            content,
+            regex,
+            subRE,
+            quoteRegex,
+            quote,
+            options,
+            fileName,
+            messageToFilesMap,
+          }),
+        );
       };
 
       extractStrings('"');
 
-      return messages;
+      return [messages, messageToFilesMap];
     },
 
-    javascript: function(file, options) {
-      var contents = grunt.file.read(file).replace("\n", " ")
-        .replace(/"\s*\+\s*"/g, "")
-        .replace(/'\s*\+\s*'/g, "");
+    javascript(fileName, options) {
+      const content = grunt.file.read(fileName).replace('\n', ' ')
+        .replace(/"\s*\+\s*"/g, '')
+        .replace(/'\s*\+\s*'/g, '');
 
-      var fn = _.flatten([ options.functionName ]),
-        messages = {},
-        namespaceSeparator = options.namespaceSeparator || '.';
+      const fn = _.flatten([options.functionName]);
+      const messages = {};
+      const namespaceSeparator = options.namespaceSeparator || '.';
+      const messageToFilesMap = {};
 
-      var extractStrings = function(quote, fn) {
-        var namespaceRegex = "(?:([\\d\\w]*)" + namespaceSeparator + ")?";
-        var regex = new RegExp("(?:[^\\w]|^)" + fn + "\\s*\\(\\s*((?:" +
-                               quote + "(?:[^" + quote + "\\\\]|\\\\.)+" + quote +
-                               "\\s*[,)]\\s*)+)", "g");
-        var subRE = new RegExp(quote + namespaceRegex + "((?:[^" + quote + "\\\\]|\\\\.)+)" + quote, "g");
-        var quoteRegex = new RegExp("\\\\" + quote, "g");
+      const extractStrings = function (quote, functionName) {
+        const namespaceRegex = `(?:([\\d\\w]*)${namespaceSeparator})?`;
+        const regex = new RegExp(`(?:[^\\w]|^)${functionName}\\s*\\(\\s*((?:${
+          quote}(?:[^${quote}\\\\]|\\\\.)+${quote
+        }\\s*[,)]\\s*)+)`, 'g');
+        const subRE = new RegExp(`${quote + namespaceRegex}((?:[^${quote}\\\\]|\\\\.)+)${quote}`, 'g');
+        const quoteRegex = new RegExp(`\\\\${quote}`, 'g');
 
-        mergeTranslationNamespaces(messages, getMessages(contents, regex, subRE, quoteRegex, quote, options));
+        mergeTranslationNamespaces(
+          messages,
+          getMessages({
+            content,
+            regex,
+            subRE,
+            quoteRegex,
+            quote,
+            options,
+            fileName,
+            messageToFilesMap,
+          }),
+        );
       };
 
-      _.each(fn, function(func) {
+      _.each(fn, (func) => {
         extractStrings("'", func);
         extractStrings('"', func);
-        extractStrings("'", func + "_");
-        extractStrings('"', func + "_");
+        extractStrings("'", `${func}_`);
+        extractStrings('"', `${func}_`);
       });
 
-      return messages;
-    }
+      return [messages, messageToFilesMap];
+    },
   };
 
+  function combineMessageToFilesMaps(mapToModify, newMap) {
+    _.each(newMap, (files, message) => {
+      if (mapToModify[message]) {
+        mapToModify[message] = mapToModify[message].concat(files);
+      } else {
+        mapToModify[message] = files;
+      }
+    });
+  }
+
+  function calculateDiffBetweenOldAndNewMessageIds(oldMessageIdsArray, messageToFilesMap) {
+    let diff = '';
+    _.each(messageToFilesMap, (files, messageId) => {
+      if (!_.contains(oldMessageIdsArray, escapeString(messageId))) {
+        diff += `${escapeString(messageId)} -- ${files.join(', ')}\n`;
+      }
+    });
+    return diff;
+  }
+
+  function extractMessageIds(string) {
+    const messageIds = [];
+    let match = true;
+    const regex = new RegExp('msgid "((.|[\\s])+?([^\\\\]))"', 'gm');
+    do {
+      match = regex.exec(string);
+      if (match) {
+        messageIds.push(match[0].slice(6));
+      }
+    } while (match);
+    return messageIds;
+  }
+
   function handleTranslations(options, files, potFolderPath) {
+    const translations = {};
+    const messageToFilesMap = {};
 
-    var translations = {};
-
-    files.forEach(function(f) {
-
-      if (!extractors.hasOwnProperty(f.dest)) {
-        console.log("No gettext extractor for type: " + f.dest);
+    files.forEach((f) => {
+      if (!extractors[f.dest]) {
+        console.log(`No gettext extractor for type: ${f.dest}`);
         return;
       }
 
-      var messages = {};
-      f.src.forEach(function(file) {
-        var newExtractedStrings = extractors[f.dest](file, options);
-        _.each(newExtractedStrings, function(aNamespace, namespaceName) {
+      const messages = {};
+      f.src.forEach((file) => {
+        const newExtracted = extractors[f.dest](file, options);
+        const newExtractedStrings = newExtracted[0];
+        const newMessageToFilesMap = newExtracted[1];
+        _.each(newExtractedStrings, (aNamespace, namespaceName) => {
+          if (!messageToFilesMap[namespaceName]) {
+            messageToFilesMap[namespaceName] = {};
+          }
+          combineMessageToFilesMaps(
+            messageToFilesMap[namespaceName],
+            newMessageToFilesMap[namespaceName],
+          );
           messages[namespaceName] = _.extend(messages[namespaceName] || {}, aNamespace);
         });
       });
 
       mergeTranslationNamespaces(translations, messages);
-
-      _.each(messages, function(aNamespace, namespaceName) {
-        var count = Object.keys(aNamespace).length;
-      })
     });
-
-    _.each(translations, function(aNamespace, namespaceName) {
-      var contents = "";
-
-      var sortedKeys = Object.keys(aNamespace).sort();
-
-      contents += _.map(sortedKeys, function (aKey) {
-        var definition = aNamespace[aKey];
-        var buffer = "msgid " + escapeString(definition.singular) + "\n";
-        if (definition.plural) {
-          buffer += "msgid_plural " + escapeString(definition.plural) + "\n";
-          buffer += "msgstr[0] " + escapeString(definition.message) + "\n";
-        } else {
-          buffer += "msgstr " + escapeString(definition.message) + "\n";
-        }
-        return buffer;
-      }).join("\n");
-
-      var filename = path.resolve(options.potPath, namespaceName + ".pot");
+    const errors = [];
+    _.each(translations, (aNamespace, namespaceName) => {
+      const filename = path.resolve(options.potPath, `${namespaceName}.pot`);
 
       if (!grunt.option('fix')) {
-        var existingResources = grunt.file.read(filename);
-        if (contents !== existingResources) {
-          grunt.fail.fatal("It appears that you have js resource changes not yet updated in po and pot files. Please run 'grunt xgettext --fix'");
+        const existingString = grunt.file.read(filename);
+        const existingMessageIds = extractMessageIds(existingString);
+        const diff = calculateDiffBetweenOldAndNewMessageIds(
+          existingMessageIds,
+          messageToFilesMap[namespaceName],
+        );
+        if (diff) {
+          errors.push(diff);
         }
       } else {
+        let contents = '';
+
+        const sortedKeys = Object.keys(aNamespace).sort();
+
+        contents += _.map(sortedKeys, (aKey) => {
+          const definition = aNamespace[aKey];
+          let buffer = `msgid ${escapeString(definition.singular)}\n`;
+          if (definition.plural) {
+            buffer += `msgid_plural ${escapeString(definition.plural)}\n`;
+            buffer += `msgstr[0] ${escapeString(definition.message)}\n`;
+          } else {
+            buffer += `msgstr ${escapeString(definition.message)}\n`;
+          }
+          return buffer;
+        }).join('\n');
         grunt.file.write(filename, contents, {});
         updatePoFromPot(potFolderPath, namespaceName);
       }
     });
+    if (errors.length) {
+      grunt.fail.fatal(`It appears that you have js resource changes not yet updated in po and pot files. Please run 'grunt xgettext --fix'. The diff is:\n${errors.join('\n')}`);
+    }
   }
 
-  grunt.registerMultiTask("xgettext", "Extracts translatable messages", function() {
-    var options = this.options({
-      functionName: "tr",
+  grunt.registerMultiTask('xgettext', 'Extracts translatable messages', function () {
+    const options = this.options({
+      functionName: 'tr',
       processMessage: _.identity,
-      potPath: '.'
+      potPath: '.',
     });
     handleTranslations(options, this.files, './project/translations');
   });
 
-  grunt.registerMultiTask("xgettextKingsschool", "Extracts translatable messages for kingsschool project", function() {
-    var options = this.options({
-      functionName: "tr",
+  grunt.registerMultiTask('xgettextKingsschool', 'Extracts translatable messages for kingsschool project', function () {
+    const options = this.options({
+      functionName: 'tr',
       processMessage: _.identity,
-      potPath: '.'
+      potPath: '.',
     });
     handleTranslations(options, this.files, './project/kingsschool/translations');
   });
