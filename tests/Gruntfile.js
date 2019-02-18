@@ -15,12 +15,14 @@ module.exports = function(grunt) {
             default_options: {
                 options: {
                     functionName: "tr",
+                    namespaceSeparator: "::",
                     potFile: "messages.pot"
                 },
 
                 files: {
                     handlebars: ["assets/*.handlebars"],
-                    javascript: ["assets/*.js"]
+                    javascript: ["assets/*.js"],
+                    vue: ["assets/*.vue"]
                 }
             }
         }
