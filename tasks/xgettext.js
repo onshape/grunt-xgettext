@@ -265,6 +265,7 @@ module.exports = function (grunt) {
         extractStrings("'", func);
         extractStrings('"', func);
         extractDirectiveStrings("'", func);
+        extractDirectiveStrings('"', func);
       });
 
       return [messages, messageToFilesMap];
