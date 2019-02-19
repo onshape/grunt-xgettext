@@ -265,7 +265,6 @@ module.exports = function (grunt) {
         extractStrings("'", func);
         extractStrings('"', func);
         extractDirectiveStrings("'", func);
-        extractDirectiveStrings('"', func);
       });
 
       return [messages, messageToFilesMap];
@@ -308,6 +307,97 @@ module.exports = function (grunt) {
 
       return [messages, messageToFilesMap];
     },
+
+
+    vue(fileName, options) {
+      // vue files have two portions
+      // The HTML template portion appears between <template> tags
+      // and has a similar format to angular templates
+      // The logic is in a <script> tag below the template,
+      // and can be parsed with the javascript extractor
+
+      const content = grunt.file.read(fileName).replace('\n', ' ');
+      const fn = _.flatten([options.functionName]);
+      const messages = {};
+      const namespaceSeparator = options.namespaceSeparator || '.';
+      const messageToFilesMap = {};
+
+      // Extract text strings with use the filter form of the ng-i18next library.
+      const extractStrings = function (quote, functionName) {
+        const namespaceRegex = `(?:([\\d\\w]*)${namespaceSeparator})?`;
+        const variablesRegex = '(?:\\(.*\\))?';
+        const regex = new RegExp(`\\{\\{\\s*((?:\\:{0,2}\\(?${
+          quote}(?:[^${quote}\\\\]|\\\\.)+${quote
+        }\\s*)+)[^}]*\\s*\\|\\s*${functionName}${variablesRegex}\\)?\\s*\\}\\}`, 'g');
+        const subRE = new RegExp(`${quote + namespaceRegex}((?:[^${quote}\\\\]|\\\\.)+)${quote}`, 'g');
+        const quoteRegex = new RegExp(`\\\\${quote}`, 'g');
+
+        mergeTranslationNamespaces(
+          messages,
+          getMessages({
+            content,
+            regex,
+            subRE,
+            quoteRegex,
+            quote,
+            options,
+            fileName,
+            messageToFilesMap,
+          }),
+        );
+      };
+
+      /* Text strings may also be used in directives with a set of arguments
+       */
+      const extractVueDirectiveStrings = function (outerQuote, quote, functionName) {
+        const namespaceRegex = `(?:([\\d\\w]*)${namespaceSeparator})?`;
+        const variablesRegex = '(?:\\(.*\\))?';
+        const messageRegex = `(${quote}(?:[^${quote}\\\\]|\\\\.)+${quote})`;
+        const regex = new RegExp(`:\\w[-\\w]*=${outerQuote}${messageRegex}\\s*\\|\\s*${functionName}${variablesRegex}\\s*${outerQuote}`, 'g');
+        const subRE = new RegExp(`${quote + namespaceRegex}((?:[^${quote}\\\\]|\\\\.)+)${quote}`, 'g');
+        const quoteRegex = new RegExp(`\\\\${quote}`, 'g');
+
+        mergeTranslationNamespaces(
+          messages,
+          getMessages({
+            content,
+            regex,
+            subRE,
+            quoteRegex,
+            quote,
+            options,
+            fileName,
+            messageToFilesMap,
+          }),
+        );
+      };
+
+      // extract messages in <template></template>
+      _.each(fn, (func) => {
+        extractStrings("'", func);
+        extractStrings('"', func);
+        extractVueDirectiveStrings(`'`, `"`, func);
+        extractVueDirectiveStrings(`"`, `'`, func);
+      });
+
+      // extract messages in <script></script>
+      const scriptTagExtracted = extractors.javascript(fileName, options);
+      const scriptTagExtractedStrings = scriptTagExtracted[0];
+      const scriptTagMessageToFilesMap = scriptTagExtracted[1];
+      _.each(scriptTagExtractedStrings, (aNamespace, namespaceName) => {
+        if (!messageToFilesMap[namespaceName]) {
+          messageToFilesMap[namespaceName] = {};
+        }
+        combineMessageToFilesMaps(
+          messageToFilesMap[namespaceName],
+          scriptTagMessageToFilesMap[namespaceName],
+        );
+        messages[namespaceName] = _.extend(messages[namespaceName] || {}, aNamespace);
+      });
+
+      return [messages, messageToFilesMap];
+    },
+
 
     json(fileName, options) {
       const content = grunt.file.read(fileName);
