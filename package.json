@@ -22,7 +22,7 @@
   ],
   "main": "Gruntfile.js",
   "engines": {
-    "node": "8.11.1"
+    "node": ">=8.11.1"
   },
   "scripts": {
     "lint": "./node_modules/.bin/eslint ./tasks --fix",
