@@ -1,7 +1,7 @@
 {
   "name": "grunt-xgettext",
   "description": "Grunt xgettext plugin for JavaScript and Handlebars",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "homepage": "https://github.com/arendjr/grunt-xgettext",
   "author": {
     "name": "Arend van Beelen",
