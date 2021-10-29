@@ -97,7 +97,7 @@ module.exports = function (grunt) {
           messageToFilesMap[currentNamespaceString] = {};
         }
         if (messageToFilesMap[currentNamespaceString][singularKey] &&
-            !_.contains(messageToFilesMap[currentNamespaceString][singularKey], fileName)) {
+            !_.includes(messageToFilesMap[currentNamespaceString][singularKey], fileName)) {
           messageToFilesMap[currentNamespaceString][singularKey].push(fileName);
         } else if (!messageToFilesMap[currentNamespaceString][singularKey]) {
           messageToFilesMap[currentNamespaceString][singularKey] = [fileName];
@@ -489,7 +489,7 @@ module.exports = function (grunt) {
   function calculateDiffBetweenOldAndNewMessageIds(oldMessageIdsArray, messageToFilesMap) {
     let diff = '';
     _.each(messageToFilesMap, (files, messageId) => {
-      if (!_.contains(oldMessageIdsArray, escapeString(messageId))) {
+      if (!_.includes(oldMessageIdsArray, escapeString(messageId))) {
         diff += `${escapeString(messageId)} -- ${files.join(', ')}\n`;
       }
     });
