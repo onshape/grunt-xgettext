@@ -1,7 +1,7 @@
 {
   "name": "@onshape/grunt-xgettext",
   "description": "Grunt xgettext plugin for JavaScript and Handlebars",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "homepage": "https://github.com/onshape/grunt-xgettext",
   "author": {
     "name": "Arend van Beelen",
