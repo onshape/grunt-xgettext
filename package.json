@@ -25,20 +25,13 @@
     "node": ">=8.11.1"
   },
   "scripts": {
-    "lint": "./node_modules/.bin/eslint ./tasks --fix",
     "test": "grunt --gruntfile=./tests/Gruntfile.js xgettext"
   },
   "devDependencies": {
-    "eslint": "^4.19.1",
-    "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.12.0",
-    "grunt": "^0.4.5",
-    "grunt-contrib-clean": "~0.4.0",
-    "grunt-contrib-jshint": "~0.6.0",
-    "grunt-contrib-nodeunit": "~0.2.0"
+    "grunt": "1.4.1"
   },
   "peerDependencies": {
-    "grunt": "~0.4.1"
+    "grunt": "~1.4.1"
   },
   "keywords": [
     "gruntplugin"
