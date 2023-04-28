@@ -14,7 +14,7 @@ module.exports = function(grunt) {
         xgettext: {
             default_options: {
                 options: {
-                    functionName: "tr",
+                    functionName: ["tr", "i18next", , "i18nextEager"],
                     namespaceSeparator: "::",
                     potFile: "messages.pot"
                 },
@@ -22,7 +22,8 @@ module.exports = function(grunt) {
                 files: {
                     handlebars: ["assets/*.handlebars"],
                     javascript: ["assets/*.js"],
-                    vue: ["assets/*.vue"]
+                    vue: ["assets/*.vue"],
+                    angular: ["assets/*.html"]
                 }
             }
         }
