@@ -1,5 +1,10 @@
+---
+
 name: npm publish
-on: 
+
+# yamllint disable rule:line-length
+# yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - 'master'
@@ -10,10 +15,11 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3.5.1
         with:
-          node-version: 12
-      - uses: JS-DevTools/npm-publish@v1
+          node-version: 16
+      - id: publish
+        uses: onshape/actions-npm-publish@v1
         with:
           token: ${{ secrets.NPM_TOKEN }}
