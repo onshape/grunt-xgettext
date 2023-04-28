@@ -258,6 +258,40 @@ module.exports = function (grunt) {
           }
         } while (result !== null);
 
+        if (!messageToFilesMap['messages']) {
+          messageToFilesMap['messages'] = {};
+        }
+        Object.keys(allNamespaces.messages).forEach((singularKey) => {
+          messageToFilesMap['messages'][singularKey] = [fileName];
+        });
+        mergeTranslationNamespaces(messages, allNamespaces);
+      };
+
+      /* Text strings may also use the innerHtml directive with a set of arguments
+       * particularly to do compiled HTML
+       * <div [innerHtml]="'Test string' | i18nextEager">.
+       */
+      const extractAngular15DirectiveStrings = function (quote, functionName) {
+        const allNamespaces = { messages: {} };
+        const regex = new RegExp(`\\[innerHtml\\]=${quote}'(?:\\({(?!}\\)).+}\\))?([^${quote}]+)'\\s\\|\\s${functionName}${quote}`, 'g');
+        let result;
+        do {
+          result = regex.exec(content);
+          if (result !== null) {
+            const string = result[1];
+            allNamespaces.messages[string] = {
+              singular: string,
+              message: '',
+            };
+          }
+        } while (result !== null);
+
+        if (!messageToFilesMap['messages']) {
+          messageToFilesMap['messages'] = {};
+        }
+        Object.keys(allNamespaces.messages).forEach((singularKey) => {
+          messageToFilesMap['messages'][singularKey] = [fileName];
+        });
         mergeTranslationNamespaces(messages, allNamespaces);
       };
 
@@ -266,6 +300,7 @@ module.exports = function (grunt) {
         extractStrings('"', func);
         extractDirectiveStrings("'", func);
         extractDirectiveStrings('"', func);
+        extractAngular15DirectiveStrings('"', func);
       });
 
       return [messages, messageToFilesMap];
