@@ -4,3 +4,12 @@
   <h4 ng-i18next="[html:i18next]AngularJs - This is a <strong>Html</strong> text"></h4>
   <h4 [innerHtml]="'Angular15 - This is a <strong>traslation</strong> text' | i18next"></h4>
 </div>
+<metadata-property
+    prop="$ctrl.workflowPagePackageProperties.getPropertyById($ctrl.TaskWorkflowProperties.comment)"
+      ctrl="::$ctrl"
+      placeholders="$ctrl.placeholders"
+      metadata-form="::$ctrl.formCtrl"
+      info-text="'(comment history)' | i18next"
+      info-action="$ctrl.showFullComments"
+    ></metadata-property>
+    <div info-text="'(comment history)' | tr"></div>
