@@ -1,3 +1,12 @@
+msgid "(AngularJs - This is a static string inside an attribute binding)"
+msgstr ""
+
+msgid "Angular15 - This is a <strong>traslation</strong> text"
+msgstr ""
+
+msgid "AngularJs - This is a <strong>Html</strong> text"
+msgstr ""
+
 msgid "Boom"
 msgstr ""
 
@@ -58,10 +67,4 @@ msgid "un"
 msgstr ""
 
 msgid "well hello again, __name__!"
-msgstr ""
-
-msgid "AngularJs - This is a <strong>Html</strong> text"
-msgstr ""
-
-msgid "Angular15 - This is a <strong>traslation</strong> text"
 msgstr ""
