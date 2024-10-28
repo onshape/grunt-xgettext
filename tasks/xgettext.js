@@ -295,12 +295,37 @@ module.exports = function (grunt) {
         mergeTranslationNamespaces(messages, allNamespaces);
       };
 
+      const extractAngularJsStringAttributeBinding = function (quote, functionName) {
+        const allNamespaces = { messages: {} };
+        const regex = new RegExp(`\\S*=${quote}'([^${quote}]+)'\\s\\|\\s${functionName}${quote}`, 'g');
+        let result;
+        do {
+          result = regex.exec(content);
+          if (result !== null) {
+            const string = result[1];
+            allNamespaces.messages[string] = {
+              singular: string,
+              message: '',
+            };
+          }
+        } while (result !== null);
+
+        if (!messageToFilesMap['messages']) {
+          messageToFilesMap['messages'] = {};
+        }
+        Object.keys(allNamespaces.messages).forEach((singularKey) => {
+          messageToFilesMap['messages'][singularKey] = [fileName];
+        });
+        mergeTranslationNamespaces(messages, allNamespaces);
+      };
+
       _.each(fn, (func) => {
         extractStrings("'", func);
         extractStrings('"', func);
         extractDirectiveStrings("'", func);
         extractDirectiveStrings('"', func);
         extractAngular15DirectiveStrings('"', func);
+        extractAngularJsStringAttributeBinding('"',func);
       });
 
       return [messages, messageToFilesMap];
